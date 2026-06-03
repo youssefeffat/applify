@@ -16,7 +16,9 @@ You can run the Applify project in two ways: using Docker for a quick, container
 
 Docker is the easiest way to spin up the entire architecture, including the database, frontend, and all backend microservices.
 
-1. Ensure you have **Docker** and **Docker Compose** installed on your machine.
+> **⚠️ IMPORTANT:** You must have **Docker Desktop** (or the Docker daemon) actively running in the background before executing these commands. If it is not running, you will receive connection errors.
+
+1. Ensure you have **Docker** and **Docker Compose** installed and running on your machine.
 2. Open a terminal at the root of the project.
 3. Build and start the containers:
    ```bash
@@ -24,7 +26,7 @@ Docker is the easiest way to spin up the entire architecture, including the data
    ```
 4. Once the containers are running, you can access:
    - **Frontend Application**: `http://localhost:5173`
-   - **API Gateway (Backend)**: `http://localhost:8000`
+   - **API Gateway (Backend)**: `http://localhost:80`
 
 *(To stop the application, press `Ctrl+C` or run `docker compose down`)*
 

@@ -1,0 +1,20 @@
+name: applify-stack
+
+include:
+  - Backend/docker-compose.yml
+
+services:
+  frontend:
+    build:
+      context: ./Frontend
+      dockerfile: Dockerfile
+    ports:
+      - "5173:5173"
+    environment:
+      - BACKEND_URL=http://api-gateway:80
+    volumes:
+      - ./Frontend:/app
+      # Exclude host node_modules from overriding the container's node_modules
+      - /app/node_modules
+    depends_on:
+      - api-gateway
