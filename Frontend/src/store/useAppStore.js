@@ -4,6 +4,14 @@ import usersAPI from '../api/users'
 import trackerAPI from '../api/tracker'
 import jobsAPI from '../api/jobs'
 
+/**
+ * @typedef {Object} AppState
+ * @property {boolean} isAuthenticated
+ * @property {Object|null} user
+ * @property {Array<import('../api/jobs').Job & {job_id?: number, status?: string}>} savedJobs
+ */
+
+/** @type {import('vue').UnwrapNestedRefs<AppState>} */
 const state = reactive({
   isAuthenticated: !!localStorage.getItem('token'),
   user: null,

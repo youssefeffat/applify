@@ -16,8 +16,15 @@ const searchQuery = ref('')
 const filterType = ref('')
 const filterContract = ref('')
 const isLoading = ref(true)
+const timeoutId = ref(null)
+const abortController = ref(null)
 
 const fetchJobs = async () => {
+  if (abortController.value) {
+    abortController.value.abort()
+  }
+  abortController.value = new AbortController()
+
   isLoading.value = true
   try {
     const params = {}
@@ -25,7 +32,7 @@ const fetchJobs = async () => {
     if (filterType.value) params.mode = filterType.value
     if (filterContract.value) params.contract = filterContract.value
     
-    const { data } = await jobsAPI.getJobs(params)
+    const { data } = await jobsAPI.getJobs(params, { signal: abortController.value.signal })
     const fetchedJobs = data.items || data
     
     // Apply AI scoring based on user profile
@@ -44,14 +51,26 @@ const fetchJobs = async () => {
       .filter(j => j.shouldDisplay)
       .sort((a, b) => b.score - a.score)
   } catch (err) {
+    if (err.name === 'CanceledError' || err.code === 'ERR_CANCELED') {
+      return // Ignore aborted requests
+    }
     console.error("Failed to fetch jobs", err)
   } finally {
-    isLoading.value = false
+    if (!abortController.value?.signal.aborted) {
+      isLoading.value = false
+    }
   }
 }
 
+const debouncedFetchJobs = () => {
+  if (timeoutId.value) clearTimeout(timeoutId.value)
+  timeoutId.value = setTimeout(() => {
+    fetchJobs()
+  }, 300)
+}
+
 watch([searchQuery, filterType, filterContract, () => store.user], () => {
-  fetchJobs()
+  debouncedFetchJobs()
 }, { deep: true })
 
 onMounted(() => {

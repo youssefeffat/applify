@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAppStore } from '../store/useAppStore.js'
 import { useToast } from '../store/useToast.js'
@@ -13,22 +13,60 @@ const isEditMode = ref(false)
 
 // Provide defaults for all possible fields
 const formData = ref({
-  firstName: user.value.firstName || '',
-  lastName: user.value.lastName || '',
-  currentTitle: user.value.currentTitle || '',
-  github: user.value.github || '',
+  firstName: user.value.first_name || '',
+  lastName: user.value.last_name || '',
+  currentTitle: user.value.current_title || '',
+  github: user.value.github_url || '',
   targetRoles: user.value.job_preferences?.target_roles || [],
-  education: user.value.education || '',
-  experience: user.value.experience || '',
-  skills: user.value.skills || '',
-  softSkills: user.value.softSkills || '',
-  longResume: user.value.longResume || ''
+  education: user.value.professional_background?.education || '',
+  experience: user.value.professional_background?.experience || '',
+  skills: user.value.professional_background?.skills || '',
+  softSkills: user.value.professional_background?.soft_skills || '',
+  longResume: user.value.long_resume || ''
 })
 
-const handleSave = () => {
-  store.saveUser({ ...formData.value })
-  isEditMode.value = false
-  addToast('Profile updated successfully!', 'success')
+watch(user, (newUser) => {
+  if (!isEditMode.value && newUser && Object.keys(newUser).length > 0) {
+    formData.value.firstName = newUser.first_name || ''
+    formData.value.lastName = newUser.last_name || ''
+    formData.value.currentTitle = newUser.current_title || ''
+    formData.value.github = newUser.github_url || ''
+    formData.value.targetRoles = newUser.job_preferences?.target_roles || []
+    formData.value.education = newUser.professional_background?.education || ''
+    formData.value.experience = newUser.professional_background?.experience || ''
+    formData.value.skills = newUser.professional_background?.skills || ''
+    formData.value.softSkills = newUser.professional_background?.soft_skills || ''
+    formData.value.longResume = newUser.long_resume || ''
+  }
+}, { immediate: true })
+
+const handleSave = async () => {
+  const payload = {
+    first_name: formData.value.firstName,
+    last_name: formData.value.lastName,
+    current_title: formData.value.currentTitle,
+    github_url: formData.value.github,
+    long_resume: formData.value.longResume,
+    job_preferences: {
+      ...(user.value.job_preferences || {}),
+      target_roles: formData.value.targetRoles
+    },
+    professional_background: {
+      ...(user.value.professional_background || {}),
+      education: formData.value.education,
+      experience: formData.value.experience,
+      skills: formData.value.skills,
+      soft_skills: formData.value.softSkills
+    }
+  }
+  
+  try {
+    await store.updateUser(payload)
+    isEditMode.value = false
+    addToast('Profile updated successfully!', 'success')
+  } catch (e) {
+    addToast('Failed to update profile', 'error')
+  }
 }
 
 const handleLogout = () => {
