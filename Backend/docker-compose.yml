@@ -1,0 +1,69 @@
+version: '3.8'
+
+services:
+  api-gateway:
+    build:
+      context: ./api-gateway
+    ports:
+      - "80:80"
+    depends_on:
+      - auth-service
+      - user-service
+      - job-catalog-service
+      - tracker-service
+      - ai-service
+
+  auth-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: uvicorn main:app --host 0.0.0.0 --port 8001
+    working_dir: /app/auth-service/src
+    environment:
+      - PORT=8001
+    env_file:
+      - .env
+
+  user-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: uvicorn main:app --host 0.0.0.0 --port 8002
+    working_dir: /app/user-service/src
+    environment:
+      - PORT=8002
+    env_file:
+      - .env
+
+  job-catalog-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: uvicorn main:app --host 0.0.0.0 --port 8003
+    working_dir: /app/job-catalog-service/src
+    environment:
+      - PORT=8003
+    env_file:
+      - .env
+
+  tracker-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: uvicorn main:app --host 0.0.0.0 --port 8004
+    working_dir: /app/tracker-service/src
+    environment:
+      - PORT=8004
+    env_file:
+      - .env
+
+  ai-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: uvicorn main:app --host 0.0.0.0 --port 8005
+    working_dir: /app/ai-service/src
+    environment:
+      - PORT=8005
+    env_file:
+      - .env
