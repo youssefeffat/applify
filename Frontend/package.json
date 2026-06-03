@@ -20,5 +20,12 @@
     "jsdom": "^29.1.1",
     "vite": "^8.0.12",
     "vitest": "^4.1.8"
+  },
+  "pnpm": {
+    "supportedArchitectures": {
+      "os": ["linux", "win32"],
+      "cpu": ["x64", "arm64"],
+      "libc": ["glibc", "musl"]
+    }
   }
 }

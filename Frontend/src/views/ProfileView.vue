@@ -69,8 +69,8 @@ const handleSave = async () => {
   }
 }
 
-const handleLogout = () => {
-  store.logout()
+const handleLogout = async () => {
+  await store.logout()
   router.push('/login')
 }
 
