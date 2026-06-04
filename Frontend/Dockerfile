@@ -1,4 +1,4 @@
-FROM node:22-alpine
+FROM node:22-slim
 
 WORKDIR /app
 
@@ -8,8 +8,8 @@ RUN npm install -g pnpm
 # Copy package files
 COPY package.json pnpm-lock.yaml ./
 
-# Install dependencies
-RUN pnpm install
+# Install all dependencies including optional native bindings for linux-x64
+RUN pnpm install --no-frozen-lockfile
 
 # Copy the rest of the application
 COPY . .
@@ -17,5 +17,5 @@ COPY . .
 # Expose port
 EXPOSE 5173
 
-# Start the dev server
-CMD ["pnpm", "run", "dev"]
+# Start dev server (re-install if node_modules was overridden by a volume mount)
+CMD ["pnpm", "run", "dev", "--", "--host"]

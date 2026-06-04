@@ -13,8 +13,9 @@ services:
     environment:
       - BACKEND_URL=http://api-gateway:80
     volumes:
-      - ./Frontend:/app
-      # Exclude host node_modules from overriding the container's node_modules
-      - /app/node_modules
+      - ./Frontend/src:/app/src
+      - ./Frontend/index.html:/app/index.html
+      - ./Frontend/vite.config.js:/app/vite.config.js
+      - ./Frontend/public:/app/public
     depends_on:
       - api-gateway

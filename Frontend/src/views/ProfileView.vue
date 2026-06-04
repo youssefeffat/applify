@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAppStore } from '../store/useAppStore.js'
 import { useToast } from '../store/useToast.js'
@@ -39,6 +39,10 @@ watch(user, (newUser) => {
     formData.value.longResume = newUser.long_resume || ''
   }
 }, { immediate: true })
+
+onMounted(async () => {
+  if (!store.user) await store.fetchUser()
+})
 
 const handleSave = async () => {
   const payload = {

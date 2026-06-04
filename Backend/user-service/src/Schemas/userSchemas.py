@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 from typing import List, Optional
 
 class JobPreferences(BaseModel):
@@ -6,6 +6,12 @@ class JobPreferences(BaseModel):
     target_roles: List[str] = []
     employment_types: List[str] = []
     experience_levels: List[str] = []
+
+    @field_validator('target_roles', 'employment_types', 'experience_levels', mode='before')
+    @classmethod
+    def none_to_empty_list(cls, v):
+        """Coerce NULL from Supabase to empty list."""
+        return v if v is not None else []
 
 class ProfessionalBackground(BaseModel):
     education: Optional[str] = None
