@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, watch, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAppStore } from '../store/useAppStore.js'
 import aiAPI from '../api/ai'
@@ -14,17 +14,29 @@ const user = computed(() => store.user || {})
 const prefs = computed(() => user.value.job_preferences || {})
 
 // Initialize custom roles parsing from saved strings ("Title - Description")
-const initialRoles = (prefs.value.target_roles || []).map(str => {
-  const parts = str.split(' - ')
-  return { title: parts[0], description: parts.slice(1).join(' - ') || '' }
-})
-const selectedRoles = ref(initialRoles)
+const selectedRoles = ref([])
 
 const formData = ref({
-  employment_types: [...(prefs.value.employment_types || [])],
-  experience_levels: [...(prefs.value.experience_levels || [])],
-  target_years_experience: prefs.value.target_years_experience || '',
-  location: user.value.location || ''
+  employment_types: [],
+  experience_levels: [],
+  target_years_experience: '',
+  location: ''
+})
+
+// React to user data loading (handles page refresh case)
+watch(prefs, (newPrefs) => {
+  formData.value.employment_types = [...(newPrefs.employment_types || [])]
+  formData.value.experience_levels = [...(newPrefs.experience_levels || [])]
+  formData.value.target_years_experience = newPrefs.target_years_experience || ''
+  formData.value.location = user.value.location || ''
+  selectedRoles.value = (newPrefs.target_roles || []).map(str => {
+    const parts = str.split(' - ')
+    return { title: parts[0], description: parts.slice(1).join(' - ') || '' }
+  })
+}, { immediate: true })
+
+onMounted(async () => {
+  if (!store.user) await store.fetchUser()
 })
 
 const employmentOptions = ['remote', 'hybrid', 'on-site', 'Full-Time', 'Part-Time', 'Contract']

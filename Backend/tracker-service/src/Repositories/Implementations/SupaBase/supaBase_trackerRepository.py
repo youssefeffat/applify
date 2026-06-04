@@ -1,5 +1,6 @@
 """Supabase-backed tracker repository implementation using PostgREST."""
 from typing import Optional, Dict, Any, List
+from datetime import datetime
 import requests
 
 class SupaBaseTrackerRepository:
@@ -16,6 +17,16 @@ class SupaBaseTrackerRepository:
 
     def _endpoint(self) -> str:
         return f"{self.supabase_url}/rest/v1/{self.table}"
+
+    def _serialize_data(self, data: Dict[str, Any]) -> Dict[str, Any]:
+        """Convert datetime objects to ISO strings for JSON serialization."""
+        serialized = {}
+        for key, value in data.items():
+            if isinstance(value, datetime):
+                serialized[key] = value.isoformat()
+            else:
+                serialized[key] = value
+        return serialized
 
     def get_user_applications(self, user_id: str) -> List[Dict[str, Any]]:
         params = {"user_id": f"eq.{user_id}", "select": "*"}
@@ -36,7 +47,7 @@ class SupaBaseTrackerRepository:
     def create_application(self, data: Dict[str, Any]) -> Dict[str, Any]:
         headers = self.headers.copy()
         headers["Prefer"] = "return=representation"
-        resp = requests.post(self._endpoint(), headers=headers, json=data)
+        resp = requests.post(self._endpoint(), headers=headers, json=self._serialize_data(data))
         if resp.status_code in (200, 201):
             return resp.json()[0]
         raise ValueError(f"Failed to create application: {resp.status_code} - {resp.text}")
@@ -45,7 +56,7 @@ class SupaBaseTrackerRepository:
         headers = self.headers.copy()
         headers["Prefer"] = "return=representation"
         params = {"id": f"eq.{app_id}", "user_id": f"eq.{user_id}"}
-        resp = requests.patch(self._endpoint(), headers=headers, params=params, json=data)
+        resp = requests.patch(self._endpoint(), headers=headers, params=params, json=self._serialize_data(data))
         if resp.status_code in (200, 204):
             # 204 doesn't return body by default unless Prefer=return=representation is respected
             # PostgREST returns 200 with representation
@@ -62,3 +73,4 @@ class SupaBaseTrackerRepository:
         if resp.status_code in (200, 204):
             return True
         raise ValueError(f"Failed to delete application: {resp.status_code} - {resp.text}")
+

@@ -1,12 +1,18 @@
 <script setup>
-import { computed } from 'vue'
+import { computed, onMounted } from 'vue'
 import { useAppStore } from '../store/useAppStore.js'
 
 const store = useAppStore()
 const savedJobs = computed(() => store.savedJobs)
 
-const totalApplications = computed(() => savedJobs.value.filter(j => j.status === 'Applied').length)
+onMounted(async () => {
+  await store.fetchSavedJobs()
+})
+
+const SENT_STATUSES = ['Applied', 'Interviews', 'Accepted', 'Rejected']
+const totalApplications = computed(() => savedJobs.value.filter(j => SENT_STATUSES.includes(j.status)).length)
 const totalSaved = computed(() => savedJobs.value.length)
+const totalInterviews = computed(() => savedJobs.value.filter(j => j.status === 'Interviews').length)
 
 // Format date helper
 const formatDate = (dateString) => {
@@ -30,8 +36,8 @@ const formatDate = (dateString) => {
         <div class="stat-card-value">{{ totalApplications }}</div>
       </div>
       <div class="stat-card stat-card-tertiary">
-        <div class="stat-card-label">Interviews (Mock)</div>
-        <div class="stat-card-value">0</div>
+        <div class="stat-card-label">Interviews</div>
+        <div class="stat-card-value">{{ totalInterviews }}</div>
       </div>
     </div>
     

@@ -6,7 +6,6 @@ import JobCard from '../components/JobCard.vue'
 import JobCardSkeleton from '../components/JobCardSkeleton.vue'
 import jobsAPI from '../api/jobs'
 import { useAppStore } from '../store/useAppStore.js'
-import { calculateJobMatch } from '../utils/jobScorer.js'
 
 const router = useRouter()
 const store = useAppStore()
@@ -35,14 +34,15 @@ const fetchJobs = async () => {
     const { data } = await jobsAPI.getJobs(params, { signal: abortController.value.signal })
     const fetchedJobs = data.items || data
     
-    // Apply AI scoring based on user profile
+    // Apply match scoring via store cache (consistent across all views)
     const scoredJobs = fetchedJobs.map(job => {
-      const match = calculateJobMatch(job, store.user)
+      const match = store.getJobScore(job)
       return {
         ...job,
         score: match.score,
         recommended: match.isRecommended,
-        shouldDisplay: match.shouldDisplay
+        shouldDisplay: match.shouldDisplay,
+        matchedSkills: match.matchedSkills
       }
     })
     

@@ -48,25 +48,37 @@ class SupaBaseUserRepository:
         }
 
     def update_user_profile(self, user_id: str, data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
-        headers = self.headers.copy()
-        headers["Prefer"] = "resolution=merge-duplicates"
-        
-        # 1. Update profile
+        upsert_headers = self.headers.copy()
+        upsert_headers["Prefer"] = "resolution=merge-duplicates,return=representation"
+
+        # 1. Upsert profile (conflict on user_id unique constraint)
         profile_data = {k: v for k, v in data.items() if k not in ["job_preferences", "professional_background"]}
         if profile_data:
             profile_data["user_id"] = user_id
-            requests.post(self._endpoint("profiles"), headers=headers, json=profile_data)
-        
-        # 2. Update job_preferences
+            requests.post(
+                self._endpoint("profiles") + "?on_conflict=user_id",
+                headers=upsert_headers,
+                json=profile_data
+            )
+
+        # 2. Upsert job_preferences
         if "job_preferences" in data and data["job_preferences"] is not None:
             prefs_data = data["job_preferences"]
             prefs_data["user_id"] = user_id
-            requests.post(self._endpoint("job_preferences"), headers=headers, json=prefs_data)
-            
-        # 3. Update professional_background
+            requests.post(
+                self._endpoint("job_preferences") + "?on_conflict=user_id",
+                headers=upsert_headers,
+                json=prefs_data
+            )
+
+        # 3. Upsert professional_background
         if "professional_background" in data and data["professional_background"] is not None:
             bg_data = data["professional_background"]
             bg_data["user_id"] = user_id
-            requests.post(self._endpoint("professional_background"), headers=headers, json=bg_data)
+            requests.post(
+                self._endpoint("professional_background") + "?on_conflict=user_id",
+                headers=upsert_headers,
+                json=bg_data
+            )
 
-        return self.get_user_full_profile(user_id)
+        return self.get_user_full_profile(user_id)

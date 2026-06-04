@@ -3,6 +3,7 @@ import authAPI from '../api/auth'
 import usersAPI from '../api/users'
 import trackerAPI from '../api/tracker'
 import jobsAPI from '../api/jobs'
+import { calculateJobMatch } from '../utils/jobScorer.js'
 
 /**
  * @typedef {Object} AppState
@@ -16,6 +17,8 @@ const state = reactive({
   isAuthenticated: !!localStorage.getItem('token'),
   user: null,
   savedJobs: [],
+  /** @type {Map<string, {score:number,isRecommended:boolean,matchedSkills:string[],matchDetails:Object}>} */
+  scoreCache: new Map(),
   
   // Actions
   async login(credentials) {
@@ -65,10 +68,29 @@ const state = reactive({
     try {
       const { data } = await usersAPI.updateMe(userData)
       state.user = data
+      // Invalidate score cache when profile changes
+      state.scoreCache.clear()
       return data
     } catch (err) {
       throw err
     }
+  },
+
+  /**
+   * Get a cached match score for a job, computing it if needed.
+   * Guarantees the same score is shown everywhere for the same job.
+   */
+  getJobScore(job) {
+    if (!job?.id) return { score: 50, isRecommended: false, matchedSkills: [], matchDetails: {} }
+    if (state.scoreCache.has(job.id)) return state.scoreCache.get(job.id)
+    const result = calculateJobMatch(job, state.user)
+    state.scoreCache.set(job.id, result)
+    return result
+  },
+
+  /** Clear all cached scores (e.g. after profile update) */
+  clearScoreCache() {
+    state.scoreCache.clear()
   },
 
   async fetchSavedJobs() {
@@ -117,7 +139,7 @@ const state = reactive({
   async updateJobStatus(appId, newStatus, interviewDate = null) {
     try {
       const payload = { status: newStatus }
-      if (interviewDate) payload.interview_date = interviewDate
+      if (interviewDate) payload.interview_date = interviewDate + 'T00:00:00'
 
       const { data } = await trackerAPI.updateApplication(appId, payload)
       const jobIndex = state.savedJobs.findIndex(j => j.id === appId)
@@ -127,6 +149,22 @@ const state = reactive({
       return true
     } catch (err) {
       console.error(err)
+      return false
+    }
+  },
+
+  async updateInterviewDate(appId, dateString) {
+    try {
+      // Send full ISO datetime string so Pydantic parses it correctly
+      const payload = { interview_date: dateString + 'T00:00:00' }
+      const { data } = await trackerAPI.updateApplication(appId, payload)
+      const jobIndex = state.savedJobs.findIndex(j => j.id === appId)
+      if (jobIndex !== -1) {
+        state.savedJobs[jobIndex] = { ...state.savedJobs[jobIndex], ...data }
+      }
+      return true
+    } catch (err) {
+      console.error('Failed to save interview date:', err)
       return false
     }
   },
