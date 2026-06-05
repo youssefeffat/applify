@@ -8,10 +8,13 @@ import { useAppStore } from './store/useAppStore.js'
 const route = useRoute()
 const store = useAppStore()
 
-// Fetch user on app startup so store.user is always populated after page refresh
+// Fetch user + saved jobs on app startup so state is always populated after page refresh
 onMounted(async () => {
   if (store.isAuthenticated) {
-    await store.fetchUser()
+    await Promise.all([
+      store.fetchUser(),
+      store.fetchSavedJobs()
+    ])
   }
 })
 </script>

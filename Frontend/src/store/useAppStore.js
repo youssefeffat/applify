@@ -123,10 +123,12 @@ const state = reactive({
   },
   
   async saveJob(job, status = 'Saved') {
+    const LOCKED = ['applied', 'interviewed', 'accepted', 'rejected']
+    // Safety: never create a new application if one already exists in a locked status
+    const existing = state.savedJobs.find(j => j.job_id === job.id)
+    if (existing && LOCKED.includes((existing.status || '').toLowerCase())) return false
     try {
-      // create application on backend
       const { data } = await trackerAPI.createApplication({ job_id: job.id, status })
-      // add to local state
       if (!state.savedJobs.find(j => j.id === data.id)) {
         state.savedJobs.push({ ...data, title: job.title, company: job.company, jobDetails: job })
       }
@@ -144,7 +146,9 @@ const state = reactive({
       const { data } = await trackerAPI.updateApplication(appId, payload)
       const jobIndex = state.savedJobs.findIndex(j => j.id === appId)
       if (jobIndex !== -1) {
-        state.savedJobs[jobIndex] = { ...state.savedJobs[jobIndex], ...data }
+        // Explicitly force status to newStatus — don't rely on backend response
+        // (backend may return partial data without status field)
+        state.savedJobs[jobIndex] = { ...state.savedJobs[jobIndex], ...data, status: newStatus }
       }
       return true
     } catch (err) {
@@ -170,7 +174,10 @@ const state = reactive({
   },
 
   async markApplied(job) {
+    const LOCKED = ['applied', 'interviewed', 'accepted', 'rejected']
     const app = state.savedJobs.find(j => j.job_id === job.id)
+    // Safety guard: never downgrade a locked status (case-insensitive)
+    if (app && LOCKED.includes((app.status || '').toLowerCase())) return false
     if (app) {
       return await this.updateJobStatus(app.id, 'Applied')
     } else {

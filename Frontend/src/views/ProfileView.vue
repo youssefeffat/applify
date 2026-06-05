@@ -129,20 +129,7 @@ const getInitials = () => {
           </div>
         </div>
 
-        <!-- Target Roles -->
-        <div class="profile-card">
-          <h3 class="profile-card-title">Target Roles</h3>
-          <div v-if="isEditMode" class="form-checkbox-group" style="display: flex; flex-direction: column; gap: 0.5rem;">
-            <label class="form-checkbox-item" v-for="role in ['Frontend', 'Backend', 'Full-Stack', 'DevOps', 'Mobile', 'Data']" :key="role">
-              <input type="checkbox" class="form-checkbox" :value="role" v-model="formData.targetRoles" />
-              <span class="form-checkbox-label">{{ role }}</span>
-            </label>
-          </div>
-          <div v-else class="job-card-tags">
-            <span v-for="role in formData.targetRoles" :key="role" class="job-tag">{{ role }}</span>
-            <span v-if="!formData.targetRoles?.length" class="text-light">No roles selected.</span>
-          </div>
-        </div>
+
 
       </div>
 
