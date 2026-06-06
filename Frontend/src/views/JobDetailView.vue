@@ -5,6 +5,7 @@ import { useAppStore } from '../store/useAppStore.js'
 import jobsAPI from '../api/jobs'
 import aiAPI from '../api/ai'
 import { useToast } from '../store/useToast.js'
+import ApplicationStatusBadge from '../components/ApplicationStatusBadge.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -28,8 +29,12 @@ onMounted(async () => {
   const jobId = route.params.id
   isLoading.value = true
   try {
-    const { data } = await jobsAPI.getJobById(jobId)
-    job.value = data
+    // Always refresh savedJobs to get the latest status from backend
+    const [jobRes] = await Promise.all([
+      jobsAPI.getJobById(jobId),
+      store.fetchSavedJobs()
+    ])
+    job.value = jobRes.data
   } catch (err) {
     console.error("Failed to fetch job", err)
     addToast("Job not found!", 'error')
@@ -39,32 +44,38 @@ onMounted(async () => {
   }
 })
 
-const application = computed(() => store.savedJobs.find(j => j.job_id === job.value?.id))
-const isSaved = computed(() => !!application.value)
-const isApplied = computed(() => application.value?.status === 'Applied')
+// Statuses that fully lock the job — no more Save or Apply actions
+const application = computed(() =>
+  store.savedJobs.find(j => String(j.job_id) === String(job.value?.id))
+)
+const appStatusRaw = computed(() => application.value?.status || '')  // Original case for badge display
+const appStatus    = computed(() => appStatusRaw.value.toLowerCase()) // Lowercase for comparisons
+const isSaved      = computed(() => !!application.value)
+// Locked = any status beyond 'saved'
+const isLocked = computed(() =>
+  appStatus.value === 'applied' ||
+  appStatus.value === 'interviewed' ||
+  appStatus.value === 'accepted' ||
+  appStatus.value === 'rejected'
+)
+// isSavedOnly: strictly the 'Saved' step — allows Apply
+const isSavedOnly = computed(() => appStatus.value === 'saved')
 
 const handleSaveJob = async () => {
-  if (isApplied.value) return // cannot change save status if applied
-  
+  if (isLocked.value) return
   if (isSaved.value) {
     const success = await store.removeJob(job.value.id)
-    if (success) {
-      addToast(`${job.value.title} removed from your tracker.`, 'info')
-    } else {
-      addToast('Failed to remove job.', 'error')
-    }
+    if (success) addToast(`${job.value.title} removed from your tracker.`, 'info')
+    else addToast('Failed to remove job.', 'error')
   } else {
     const success = await store.saveJob(job.value)
-    if (success) {
-      addToast(`${job.value.title} has been saved to your tracker!`, 'success')
-    } else {
-      addToast('Failed to save job.', 'error')
-    }
+    if (success) addToast(`${job.value.title} has been saved to your tracker!`, 'success')
+    else addToast('Failed to save job.', 'error')
   }
 }
 
 const handleDirectApply = async () => {
-  if (isApplied.value) return
+  if (isLocked.value) return
   await store.markApplied(job.value)
   addToast(`Application submitted successfully for ${job.value.title}!`, 'success')
 }
@@ -248,12 +259,45 @@ const handleGenerateCV = async () => {
       
       <div class="sticky-action-bar">
         <div class="sticky-action-content">
-          <button class="btn" :class="isSaved && !isApplied ? 'btn-secondary' : 'btn-primary'" @click="handleSaveJob" :disabled="isApplied" :style="{ opacity: isApplied ? '0.5' : '1', cursor: isApplied ? 'not-allowed' : 'pointer' }">
-            {{ isApplied ? 'Saved (Applied)' : (isSaved ? 'Unsave Job' : 'Save Job') }}
-          </button>
-          <button class="btn" :class="isApplied ? 'btn-success' : 'btn-success'" @click="handleDirectApply" :disabled="isApplied" :style="{ opacity: isApplied ? '0.7' : '1', cursor: isApplied ? 'not-allowed' : 'pointer' }">
-            {{ isApplied ? '✅ Applied' : '✅ Apply' }}
-          </button>
+
+          <!-- ① LOCKED: Applied / Interviewed / Accepted / Rejected -->
+          <template v-if="isLocked">
+            <div style="display:flex;align-items:center;gap:1rem;flex-wrap:wrap">
+              <ApplicationStatusBadge :status="appStatusRaw" size="lg" />
+              <span style="font-size:0.85rem;color:var(--text-light)">
+                This job is tracked in your pipeline — manage it in the
+                <a href="/tracker" style="color:var(--primary-blue);font-weight:600;text-decoration:none">Tracker →</a>
+              </span>
+            </div>
+          </template>
+
+          <!-- ② SAVED only (not applied/interviewed/etc): badge + Unsave + Apply -->
+          <template v-else-if="isSavedOnly">
+            <ApplicationStatusBadge :status="appStatusRaw" size="md" />
+            <button class="btn btn-outline" @click="handleSaveJob">
+              🗑 Unsave
+            </button>
+            <button class="btn btn-success" @click="handleDirectApply">
+              ✅ Apply now
+            </button>
+          </template>
+
+          <!-- ③ NOT TRACKED at all: show Save + Apply -->
+          <template v-else-if="!isSaved">
+            <button class="btn btn-primary" @click="handleSaveJob">
+              🔖 Save Job
+            </button>
+            <button class="btn btn-success" @click="handleDirectApply">
+              ✅ Apply
+            </button>
+          </template>
+
+          <!-- ④ Fallback: tracked but unexpected status → show badge, no action -->
+          <template v-else>
+            <ApplicationStatusBadge :status="appStatusRaw" size="md" />
+          </template>
+
+          <!-- Generate CV — always visible -->
           <button
             class="btn btn-primary"
             @click="handleGenerateCV"
@@ -261,10 +305,11 @@ const handleGenerateCV = async () => {
             :style="{ opacity: isGeneratingCV ? '0.7' : '1', cursor: isGeneratingCV ? 'not-allowed' : 'pointer' }"
           >
             <span v-if="isGeneratingCV">⏳ Generating...</span>
-            <span v-else>✨ Generate Customized CV</span>
+            <span v-else>✨ Generate CV</span>
           </button>
         </div>
       </div>
+
     </template>
   </div>
 </template>
