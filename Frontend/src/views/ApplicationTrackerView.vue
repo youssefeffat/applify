@@ -28,6 +28,7 @@ const columns = [
 
 // Returns only statuses that come AFTER the current one (no going back)
 const availableStatuses = (currentStatus) => {
+  if (currentStatus === 'Accepted' || currentStatus === 'Rejected') return []
   const currentIndex = columns.findIndex(c => c.id === currentStatus)
   if (currentIndex === -1) return columns
   return columns.slice(currentIndex + 1)
@@ -110,6 +111,12 @@ const handleViewJob = (job) => {
                   <option disabled :value="job.status">{{ columns.find(c => c.id === job.status)?.title }} (actuel)</option>
                   <option v-for="c in availableStatuses(job.status)" :key="c.id" :value="c.id">→ {{ c.title }}</option>
                 </select>
+                <div v-else-if="job.status === 'Accepted'" style="margin-top: 0.5rem; padding: 0.35rem 0.5rem; border-radius: 4px; background-color: rgba(16, 185, 129, 0.1); color: var(--success-green, #10b981); font-weight: 600; font-size: 0.85rem; display: inline-block;">
+                  ✓ Accepted
+                </div>
+                <div v-else-if="job.status === 'Rejected'" style="margin-top: 0.5rem; padding: 0.35rem 0.5rem; border-radius: 4px; background-color: rgba(239, 68, 68, 0.1); color: var(--danger-red, #ef4444); font-weight: 600; font-size: 0.85rem; display: inline-block;">
+                  ✗ Rejected
+                </div>
                 <span v-else class="status-final-badge">✓ Final</span>
               </div>
             </div>

@@ -1,0 +1,18 @@
+[build]
+  # Tell Netlify to execute all commands from the Frontend directory
+  base = "Frontend"
+  command = "npm run build"
+  publish = "dist"
+
+# API Reverse Proxy
+# IMPORTANT: Replace https://applify-api-gateway-XYZ.onrender.com with your actual Render Web Service URL!
+[[redirects]]
+  from = "/api/*"
+  to = "https://applify-api-gateway-XYZ.onrender.com/api/:splat"
+  status = 200
+
+# SPA Catch-all (Vue Router History Mode)
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
