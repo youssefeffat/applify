@@ -1,72 +1,14 @@
 version: "1"
 services:
   # ----------------------------------------------------
-  # PUBLIC FACING SERVICES (Web Services)
+  # MONOLITHIC BACKEND (All Microservices + Nginx Gateway)
   # ----------------------------------------------------
   - type: web
-    name: applify-api-gateway
+    name: applify-backend
     env: docker
-    dockerContext: Backend/api-gateway
-    dockerfilePath: Backend/api-gateway/Dockerfile
+    dockerContext: Backend
+    dockerfilePath: Backend/Dockerfile
     plan: free # Change this to starter/standard if needed
     envVars:
       - key: PORT
         value: 80
-
-  # ----------------------------------------------------
-  # INTERNAL MICROSERVICES (Private Services)
-  # ----------------------------------------------------
-  - type: pserv
-    name: auth-service
-    env: docker
-    dockerContext: Backend
-    dockerfilePath: Backend/Dockerfile
-    dockerCommand: uvicorn auth-service.src.main:app --host 0.0.0.0 --port 8001
-    plan: free
-    envVars:
-      - key: PORT
-        value: 8001
-
-  - type: pserv
-    name: user-service
-    env: docker
-    dockerContext: Backend
-    dockerfilePath: Backend/Dockerfile
-    dockerCommand: uvicorn user-service.src.main:app --host 0.0.0.0 --port 8002
-    plan: free
-    envVars:
-      - key: PORT
-        value: 8002
-
-  - type: pserv
-    name: job-catalog-service
-    env: docker
-    dockerContext: Backend
-    dockerfilePath: Backend/Dockerfile
-    dockerCommand: uvicorn job-catalog-service.src.main:app --host 0.0.0.0 --port 8003
-    plan: free
-    envVars:
-      - key: PORT
-        value: 8003
-
-  - type: pserv
-    name: tracker-service
-    env: docker
-    dockerContext: Backend
-    dockerfilePath: Backend/Dockerfile
-    dockerCommand: uvicorn tracker-service.src.main:app --host 0.0.0.0 --port 8004
-    plan: free
-    envVars:
-      - key: PORT
-        value: 8004
-
-  - type: pserv
-    name: ai-service
-    env: docker
-    dockerContext: Backend
-    dockerfilePath: Backend/Dockerfile
-    dockerCommand: uvicorn ai-service.src.main:app --host 0.0.0.0 --port 8005
-    plan: free
-    envVars:
-      - key: PORT
-        value: 8005
